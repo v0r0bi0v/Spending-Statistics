@@ -61,7 +61,7 @@ EOL
 # Останавливаем все процессы
 stop_all() {
     pkill -f "python3 main.py"
-    # pkill -f "python3 dashboard.py"
+    pkill -f "python3 dashboard.py"
     pkill -f "autocommit.sh"
     echo "Все процессы остановлены."
 }
@@ -70,7 +70,7 @@ stop_all() {
 case "$1" in
     start)
         start_bot
-        # start_dashboard
+        start_dashboard
         start_autocommit
         ;;
     stop)
