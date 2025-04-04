@@ -185,4 +185,4 @@ def update_pie_chart(selected_user, selected_month, selected_year):
     return fig, sum_text
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=8081)
+    app.run(debug=False, host='0.0.0.0', port=8081)
