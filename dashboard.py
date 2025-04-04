@@ -6,7 +6,7 @@ import pandas as pd
 import calendar
 
 # Загрузка данных (замените на ваш CSV)
-df = pd.read_csv('your_data.csv')
+df = pd.read_csv('expenses.csv')
 
 # Преобразование даты в datetime
 df['date'] = pd.to_datetime(df['date'])
@@ -87,4 +87,4 @@ def update_pie_chart(selected_user, selected_month):
     return fig
 
 if __name__ == '__main__':
-    app.run_server(debug=True, host="0.0.0.0", port="8081")
+    app.run(debug=True, host="0.0.0.0", port="8081")
