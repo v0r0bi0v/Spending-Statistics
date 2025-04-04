@@ -35,6 +35,7 @@ app.layout = dbc.Container([
     
     dbc.Button("Обновить данные", id="refresh-button", n_clicks=0, className="mb-3"),
     html.Div(id="last-updated", className="mb-2"),
+    html.Div(id="total-month-sum", className="mb-2", style={'fontSize': 18, 'fontWeight': 'bold'}),
     
     dbc.Row([
         dbc.Col([
@@ -74,11 +75,12 @@ app.layout = dbc.Container([
         ], width=12)
     ]),
     
-    dcc.Interval(
-        id='interval-component',
-        interval=120*1000,  # 120 секунд
-        n_intervals=0
-    )
+    # Закомментирован автоматический интервал обновления
+    # dcc.Interval(
+    #     id='interval-component',
+    #     interval=120*1000,  # 120 секунд
+    #     n_intervals=0
+    # )
 ], fluid=True)
 
 # Callback для обновления данных и dropdown пользователей
@@ -87,9 +89,9 @@ app.layout = dbc.Container([
     Output('user-dropdown', 'value'),
     Output('last-updated', 'children'),
     Input('refresh-button', 'n_clicks'),
-    Input('interval-component', 'n_intervals')
+    # Input('interval-component', 'n_intervals')  # Закомментировано
 )
-def update_data(n_clicks, n_intervals):
+def update_data(n_clicks, n_intervals=None):  # Убрал n_intervals из обязательных аргументов
     df = load_data()
     user_options = [{'label': user, 'value': user} for user in df['user_id'].unique()]
     default_user = user_options[0]['value'] if user_options else None
@@ -130,9 +132,10 @@ def update_year_dropdown(selected_user):
     default_value = year_options[0]['value'] if year_options else None
     return year_options, default_value
 
-# Callback для обновления круговой диаграммы
+# Callback для обновления круговой диаграммы и общей суммы
 @callback(
     Output('spending-pie-chart', 'figure'),
+    Output('total-month-sum', 'children'),
     Input('user-dropdown', 'value'),
     Input('month-dropdown', 'value'),
     Input('year-dropdown', 'value')
@@ -141,22 +144,26 @@ def update_pie_chart(selected_user, selected_month, selected_year):
     df = load_data()
     
     if None in [selected_user, selected_month, selected_year]:
-        return px.pie(title="Выберите параметры для отображения данных")
+        return px.pie(title="Выберите параметры для отображения данных"), ""
     
     filtered_df = df[(df['user_id'] == selected_user) & 
                     (df['month'] == selected_month) & 
                     (df['date'].dt.year == selected_year)]
     
     if filtered_df.empty:
-        return px.pie(title="Нет данных для выбранных параметров")
+        return px.pie(title="Нет данных для выбранных параметров"), ""
     
     grouped_df = filtered_df.groupby('label')['amount'].sum().reset_index()
+    total_sum = filtered_df['amount'].sum()
+    
+    month_name = calendar.month_name[selected_month]
+    sum_text = f"Общая сумма расходов за {month_name} {selected_year}: {total_sum:.2f}"
     
     fig = px.pie(
         grouped_df,
         values='amount',
         names='label',
-        title=f'Расходы пользователя {selected_user} за {calendar.month_name[selected_month]} {selected_year}',
+        title=f'Расходы пользователя {selected_user} за {month_name} {selected_year}',
         hover_data=['amount'],
         labels={'amount': 'Сумма', 'label': 'Категория'}
     )
@@ -175,7 +182,7 @@ def update_pie_chart(selected_user, selected_month, selected_year):
         paper_bgcolor='rgba(240, 240, 240, 0.1)'
     )
     
-    return fig
+    return fig, sum_text
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=8081)
