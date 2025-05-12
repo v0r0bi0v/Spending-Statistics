@@ -72,7 +72,7 @@ app.layout = dbc.Container([
     dbc.Row([
         dbc.Col([
             dcc.Graph(id='spending-pie-chart')
-        ], width=12)
+        ], width=30)
     ]),
     
     # Закомментирован автоматический интервал обновления
