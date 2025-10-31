@@ -137,20 +137,30 @@ def update_bar_charts(selected_user, selected_month, selected_year):
     if filtered_df.empty:
         return px.bar(title="Нет данных для выбранных параметров"), ""
     
-    grouped_df = filtered_df.groupby('label')['amount'].sum().reset_index()
-    grouped_df['log_amount'] = grouped_df['amount'].apply(lambda x: None if x <= 0 else np.log10(x))
+    # Группируем и СОРТИРУЕМ по убыванию
+    grouped_df = (
+        filtered_df.groupby('label', as_index=False)['amount']
+        .sum()
+        .sort_values('amount', ascending=False)
+    )
+    # log10 только для положительных; нули/отрицательные -> NaN, чтобы не рисовать «мусор»
+    grouped_df['log_amount'] = np.where(
+        grouped_df['amount'] > 0,
+        np.log10(grouped_df['amount']),
+        np.nan
+    )
     total_sum = filtered_df['amount'].sum()
-    
-    import plotly.subplots as sp
-    import numpy as np
-    
+        
     month_name = calendar.month_name[selected_month]
     sum_text = f"Общая сумма расходов за {month_name} {selected_year}: {total_sum:.2f}"
     
-    # Создаём две диаграммы одна под другой
-    fig = sp.make_subplots(rows=2, cols=1, shared_xaxes=True,
-                           subplot_titles=["Обычный масштаб", "Логарифмический масштаб (log10)"])
+    # Две независимые оси X (shared_xaxes=False) + больше расстояния между графиками
+    fig = sp.make_subplots(
+        rows=2, cols=1, shared_xaxes=False, vertical_spacing=0.12,
+        subplot_titles=["Обычный масштаб", "Логарифмический масштаб (log10)"]
+    )
     
+    # Верхний бар-чарт (отсортированный)
     fig.add_bar(
         x=grouped_df['label'],
         y=grouped_df['amount'],
@@ -158,6 +168,7 @@ def update_bar_charts(selected_user, selected_month, selected_year):
         row=1, col=1
     )
     
+    # Нижний бар-чарт (log10)
     fig.add_bar(
         x=grouped_df['label'],
         y=grouped_df['log_amount'],
@@ -165,17 +176,25 @@ def update_bar_charts(selected_user, selected_month, selected_year):
         row=2, col=1
     )
     
+    # Оси и оформление
+    fig.update_yaxes(title_text="Сумма", row=1, col=1)
+    fig.update_yaxes(title_text="log10(Сумма)", row=2, col=1)
+    fig.update_xaxes(title_text="Категория", tickangle=-30, row=1, col=1)
+    fig.update_xaxes(title_text="Категория", tickangle=-30, row=2, col=1)
+
+    # Жёстко фиксируем порядок категорий согласно сортировке
+    fig.update_xaxes(categoryorder='array', categoryarray=grouped_df['label'], row=1, col=1)
+    fig.update_xaxes(categoryorder='array', categoryarray=grouped_df['label'], row=2, col=1)
+    
     fig.update_layout(
         title=f'Расходы пользователя {selected_user} за {month_name} {selected_year}',
-        height=800,
+        height=850,
         showlegend=False,
+        margin=dict(t=80, r=20, b=60, l=60),
         plot_bgcolor='rgba(240,240,240,0.8)',
         paper_bgcolor='rgba(240,240,240,0.1)',
         uniformtext_minsize=12
     )
-    
-    fig.update_yaxes(title_text="Сумма", row=1, col=1)
-    fig.update_yaxes(title_text="log10(Сумма)", row=2, col=1)
     
     return fig, sum_text
 
